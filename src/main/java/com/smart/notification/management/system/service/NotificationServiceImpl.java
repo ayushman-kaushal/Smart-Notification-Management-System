@@ -2,6 +2,9 @@ package com.smart.notification.management.system.service;
 
 import lombok.RequiredArgsConstructor;
 
+import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -27,8 +30,11 @@ public class NotificationServiceImpl implements NotificationService {
 
 	private final NotificationRepository repository;
 	private final NotificationProducer producer;
+	private final ModelMapper modelMapper;
 
 	private final Random random = new Random();
+
+	private static final Logger log = LoggerFactory.getLogger(NotificationServiceImpl.class);
 
 	@Override
 	public NotificationResponse create(CreateNotificationRequest request) {
@@ -43,6 +49,7 @@ public class NotificationServiceImpl implements NotificationService {
 
 		notification = repository.save(notification);
 
+		log.info("Sending notification --> {}", notification.getType());
 		producer.send(notification.getId());
 
 		return map(notification);
@@ -129,7 +136,7 @@ public class NotificationServiceImpl implements NotificationService {
 
 			notification.setProcessedAt(LocalDateTime.now());
 		}
-
+		log.info("Messaage Consumed with status --> {}", notification.getStatus());
 		repository.save(notification);
 	}
 
@@ -175,5 +182,10 @@ public class NotificationServiceImpl implements NotificationService {
 				.type(notification.getType()).message(notification.getMessage()).status(notification.getStatus())
 				.retryCount(notification.getRetryCount()).scheduleTime(notification.getScheduleTime())
 				.processedAt(notification.getProcessedAt()).createdAt(notification.getCreatedAt()).build();
+	}
+
+	private NotificationResponse mapping(Notification notification) {
+
+		return modelMapper.map(notification, NotificationResponse.class);
 	}
 }

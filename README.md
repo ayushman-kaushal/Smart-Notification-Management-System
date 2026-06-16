@@ -49,7 +49,7 @@ GET `/api/notifications/{id}`
 ### Retry Failed Notification
 
 POST `/api/notifications/{id}/retry`
-
+ALTER SEQUENCE notifications_id_seq RESTART WITH 1;
 ### Dashboard
 
 GET `/api/dashboard`
@@ -92,6 +92,43 @@ Main fields:
 ## Running the Application
 
 ### Start PostgreSQL and Kafka
+
+``` 
+    sudo apt install postgresql postgresql-contrib -y 
+    sudo systemctl start postgresql
+    sudo systemctl enable postgresql
+    sudo systemctl status postgresql
+    sudo -i -u postgres
+    ALTER USER postgres WITH PASSWORD 'postgres';
+    \q
+    exit
+    psql -h localhost -U postgres -d notification_db
+    CREATE DATABASE notification_db;
+    
+    KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
+    bin/kafka-storage.sh format --standalone -t $KAFKA_CLUSTER_ID -c config/server.properties
+    bin/kafka-server-start.sh config/server.properties
+    
+    bin/kafka-topics.sh \
+    --create \
+    --topic notification-topic \
+    --bootstrap-server localhost:9092 \
+    --partitions 3 \
+    --replication-factor 1
+    
+    bin/kafka-topics.sh \
+    --bootstrap-server localhost:9092 \
+    --list
+    
+    bin/kafka-console-producer.sh \
+    --topic notification-topic \
+    --bootstrap-server localhost:9092
+    
+    bin/kafka-console-consumer.sh \
+    --topic notification-topic \
+    --from-beginning \
+    --bootstrap-server localhost:9092
+```
 
 ```bash
 docker-compose up -d
